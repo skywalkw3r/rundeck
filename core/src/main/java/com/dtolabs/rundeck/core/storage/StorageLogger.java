@@ -47,7 +47,12 @@ public class StorageLogger extends BaseListener<ResourceMeta> {
                     (dir ? "" : metastring) +
                     ": " +
                     statusString);
-        MDC.clear();
+        //remove only the keys set here, so values set by the caller (e.g. ExecutionLogContext) are kept
+        MDC.remove("path");
+        MDC.remove("action");
+        MDC.remove("metadata");
+        MDC.remove("type");
+        MDC.remove("status");
     }
 
     @Override

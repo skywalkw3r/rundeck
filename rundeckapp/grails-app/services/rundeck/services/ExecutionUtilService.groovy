@@ -27,6 +27,7 @@ import org.rundeck.app.data.workflow.ConditionalStep
 import org.rundeck.core.execution.ExecCommand
 import org.rundeck.core.execution.ScriptCommand
 import org.rundeck.core.execution.ScriptFileCommand
+import com.dtolabs.rundeck.core.execution.ExecutionLogContext
 import com.dtolabs.rundeck.core.execution.ServiceThreadBase
 import com.dtolabs.rundeck.core.execution.StepExecutionItem
 import com.dtolabs.rundeck.core.execution.PluginStepExecutionItemImpl
@@ -96,8 +97,30 @@ class ExecutionUtilService {
         // after execution.save(flush:true). See MicrometerExecutionMetricsService.recordExecution
         // call there instead.
     }
+    /**
+     * @return values identifying the execution for the logging context, see {@link ExecutionLogContext}
+     */
+    @CompileStatic
+    static Map<String, String> executionLogContextValues(ExecutionService.AsyncStarted execMap) {
+        if (execMap.thread?.context) {
+            return ExecutionLogContext.forContext(execMap.thread.context)
+        }
+        return ExecutionLogContext.forExecution(execMap.execution?.id?.toString(), execMap.execution?.project, null)
+    }
+
+    /**
+     * Log the result of a finished execution. Application log events are tagged with the execution's
+     * {@link ExecutionLogContext} so they can be routed with the execution's other log events.
+     */
     @CompileStatic
     def finishExecutionLogging(ExecutionService.AsyncStarted execMap) {
+        try (ExecutionLogContext.Scope ignored = ExecutionLogContext.apply(executionLogContextValues(execMap))) {
+            finishExecutionLoggingInternal(execMap)
+        }
+    }
+
+    @CompileStatic
+    private void finishExecutionLoggingInternal(ExecutionService.AsyncStarted execMap) {
         ServiceThreadBase<WorkflowExecutionResult> thread = execMap.thread
         ExecutionLogWriter loghandler = execMap.loghandler
         def exportJobDef = configurationService.getBoolean('execution.logs.fileStorage.generateExecutionXml',true)

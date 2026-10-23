@@ -19,9 +19,12 @@ import java.util.*;
 import java.util.concurrent.*;
 
 import com.dtolabs.rundeck.core.common.INodeEntry;
+import com.dtolabs.rundeck.core.execution.ExecutionLogContext;
 import com.dtolabs.rundeck.core.execution.workflow.steps.node.NodeStepResult;
 import com.dtolabs.rundeck.plugins.orchestrator.Orchestrator;
 import lombok.Builder;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * OrchestratorNodeProcessor is the class that deals with the concurrent processing of the jobs
@@ -30,6 +33,7 @@ import lombok.Builder;
  * @author Greg Schueler
  */
 public class OrchestratorNodeProcessor {
+    private static final Logger LOG = LoggerFactory.getLogger(OrchestratorNodeProcessor.class);
     private final    int                                       threadCount;
     private final    boolean                                   keepgoing;
     private final    Orchestrator                              orchestrator;
@@ -70,7 +74,7 @@ public class OrchestratorNodeProcessor {
         this.orchestrator = orchestrator;
         this.executions = executions;
 
-        this.threadPool = Executors.newFixedThreadPool(this.threadCount);
+        this.threadPool = Executors.newFixedThreadPool(this.threadCount, ExecutionLogContext.threadFactory());
 
         this.processedNodes = Collections.newSetFromMap(new ConcurrentHashMap<>());
 
@@ -118,7 +122,7 @@ public class OrchestratorNodeProcessor {
                         try {
                             Thread.sleep(2000);
                         } catch (InterruptedException e) {
-                            e.printStackTrace();
+                            LOG.debug("Interrupted while waiting for orchestrator nodes", e);
                             interrupted = true;
                             if (cancelOnInterrupt) {
                                 break;
@@ -128,7 +132,7 @@ public class OrchestratorNodeProcessor {
                         break;
                     }
                 } catch (DispatcherException e) {
-                    e.printStackTrace();
+                    LOG.error("Orchestrator node dispatch failed", e);
                 }
             }
         } catch (InterruptedException e) {

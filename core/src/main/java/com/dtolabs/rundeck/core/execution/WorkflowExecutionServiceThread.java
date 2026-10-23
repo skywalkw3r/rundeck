@@ -29,6 +29,8 @@ import com.dtolabs.rundeck.core.jobs.ExecutionLifecycleStatus;
 import com.dtolabs.rundeck.core.logging.LoggingManager;
 import com.dtolabs.rundeck.core.logging.PluginLoggingManager;
 import com.dtolabs.rundeck.plugins.jobs.JobEventResultImpl;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * WorkflowExecutionServiceThread is ...
@@ -39,6 +41,7 @@ public class WorkflowExecutionServiceThread
         extends ServiceThreadBase<WorkflowExecutionResult>
         implements WorkflowExecutionServiceContext
 {
+    private static final Logger LOG = LoggerFactory.getLogger(WorkflowExecutionServiceThread.class);
     WorkflowExecutionService weservice;
     WorkflowExecutionItem weitem;
     private StepExecutionContext context;
@@ -65,18 +68,20 @@ public class WorkflowExecutionServiceThread
         if (null == this.weservice || null == this.weitem || null == context) {
             throw new IllegalStateException("project or execution detail not instantiated");
         }
-        if (loggingManager != null) {
-            PluginLoggingManager pluginLogging = null;
-            try {
-                pluginLogging = loggingManager.createPluginLogging(context, null);
-            } catch (Throwable e) {
-                e.printStackTrace(System.err);
-                thrown = e;
-                return;
+        try (ExecutionLogContext.Scope ignored = ExecutionLogContext.apply(context)) {
+            if (loggingManager != null) {
+                PluginLoggingManager pluginLogging = null;
+                try {
+                    pluginLogging = loggingManager.createPluginLogging(context, null);
+                } catch (Throwable e) {
+                    LOG.error("Failed to create plugin logging for execution", e);
+                    thrown = e;
+                    return;
+                }
+                resultObject = pluginLogging.runWith(this::runWorkflow);
+            } else {
+                resultObject = runWorkflow();
             }
-            resultObject = pluginLogging.runWith(this::runWorkflow);
-        } else {
-            resultObject = runWorkflow();
         }
     }
 
@@ -102,12 +107,12 @@ public class WorkflowExecutionServiceThread
                 try {
                     executionLifecycleComponentHandler.afterJobEnds(executionContext, new JobEventResultImpl(getResult(), isAborted()));
                 } catch (ExecutionLifecycleComponentException err) {
-                    err.printStackTrace(System.err);
+                    LOG.error("Execution lifecycle afterJobEnds failed", err);
                 }
             }
             return getResult();
         } catch (Throwable e) {
-            e.printStackTrace(System.err);
+            LOG.error("Workflow execution failed", e);
             thrown = e;
             return null;
         }

@@ -1,7 +1,9 @@
 package rundeck.services
 
 
+import com.dtolabs.rundeck.core.execution.ExecutionLogContext
 import com.dtolabs.rundeck.core.execution.WorkflowExecutionServiceThread
+import com.dtolabs.rundeck.core.execution.workflow.StepExecutionContext
 import com.dtolabs.rundeck.core.execution.workflow.ControlBehavior
 import com.dtolabs.rundeck.core.execution.workflow.WFSharedContext
 import com.dtolabs.rundeck.core.execution.workflow.WorkflowExecutionResult
@@ -37,6 +39,40 @@ class ExecutionUtilServiceSpec extends Specification implements ServiceUnitTest<
             success | metric
             true    | 'executionSuccessMeter'
             false   | 'executionFailureMeter'
+    }
+
+    def "executionLogContextValues uses the execution thread context"() {
+        given:
+            def context = Mock(StepExecutionContext) {
+                getFrameworkProject() >> 'p1'
+                getDataContext() >> [job: [execid: '5', id: 'job-uuid']]
+            }
+            def thread = new WorkflowExecutionServiceThread(null, null, context, null, null)
+
+        when:
+            def values = ExecutionUtilService.executionLogContextValues(new ExecutionService.AsyncStarted(thread: thread))
+
+        then:
+            values == ExecutionLogContext.forExecution('5', 'p1', 'job-uuid')
+    }
+
+    def "executionLogContextValues uses the execution when the thread has no context"() {
+        given:
+            Execution e = new Execution(
+                user: "testuser", project: "p1", loglevel: 'WARN',
+                doNodedispatch: false,
+                workflow: new Workflow(commands: [new CommandExec(adhocExecution: true, adhocRemoteString: 'a')]).save()
+            )
+            assertNotNull(e.save())
+            def thread = new WorkflowExecutionServiceThread(null, null, null, null, null)
+
+        when:
+            def values = ExecutionUtilService.executionLogContextValues(
+                new ExecutionService.AsyncStarted(thread: thread, execution: e)
+            )
+
+        then:
+            values == ExecutionLogContext.forExecution(e.id.toString(), 'p1', null)
     }
 
 

@@ -189,7 +189,6 @@ public class ResponderTask implements Callable<ResponderTask.ResponderResult> {
         } catch (IOException e) {
             logger.debug("IOException " + e.getMessage(), e);
             fail(step, e.getMessage());
-            e.printStackTrace();
         }
     }
 

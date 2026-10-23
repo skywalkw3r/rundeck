@@ -103,6 +103,9 @@ dependencies {
     testImplementation "org.mockito:mockito-core:${mockitoInlineVersion}"
     testImplementation "net.bytebuddy:byte-buddy:${byteBuddyVersion}"
     testImplementation "org.objenesis:objenesis:${objenesisVersion}"
+    // MDC needs an SLF4J provider with MDC support, slf4j-api alone uses a no-op MDC
+    testRuntimeOnly "org.apache.logging.log4j:log4j-slf4j2-impl:${project.'log4j2.version'}"
+    testRuntimeOnly "org.apache.logging.log4j:log4j-core:${project.'log4j2.version'}"
 
     testImplementation "org.apache.groovy:groovy-all:${groovyVersion}"
     testImplementation platform("org.spockframework:spock-bom:${spockVersion}")

@@ -216,7 +216,7 @@ public class NodeFirstWorkflowExecutor extends BaseWorkflowExecutor {
                                                                                .get("successOnEmptyNodeFilter"));
             if (!successOnEmptyNodeFilter) {
                 exception = e;
-                e.printStackTrace();
+                logger.warn("No matched nodes: {}", e.getMessage());
                 executionContext.getExecutionListener().log(Constants.ERR_LEVEL, "Exception: " + e.getClass() + ": " + e
                         .getMessage());
                 wfresult = WorkflowResultFailed;
@@ -226,7 +226,7 @@ public class NodeFirstWorkflowExecutor extends BaseWorkflowExecutor {
             }
         } catch (RuntimeException e) {
             exception = e;
-            e.printStackTrace();
+            logger.error("Workflow execution failed", e);
             executionContext.getExecutionListener().log(Constants.ERR_LEVEL, "Exception: " + e.getClass() + ": " + e
                     .getMessage());
             wfresult = WorkflowResultFailed;

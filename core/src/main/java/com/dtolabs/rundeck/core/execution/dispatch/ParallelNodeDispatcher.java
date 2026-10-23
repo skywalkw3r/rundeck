@@ -32,6 +32,7 @@ import com.dtolabs.rundeck.core.data.DataContext;
 import com.dtolabs.rundeck.core.data.SharedDataContextUtils;
 import com.dtolabs.rundeck.core.execution.ExecutionContext;
 import com.dtolabs.rundeck.core.execution.ExecutionContextImpl;
+import com.dtolabs.rundeck.core.execution.ExecutionLogContext;
 import com.dtolabs.rundeck.core.execution.FailedNodesListener;
 import com.dtolabs.rundeck.core.execution.workflow.ReadableSharedContext;
 import com.dtolabs.rundeck.core.execution.workflow.StepExecutionContext;
@@ -120,7 +121,7 @@ public class ParallelNodeDispatcher implements NodeDispatcher {
             }
             nodeNames.add(node.getNodename());
             context.getExecutionListener().log(3, "Create task for node: " + node.getNodename());
-            final CallableWrapperTask callableWrapperTask1 = new CallableWrapperTask(tocall);
+            final CallableWrapperTask callableWrapperTask1 = new CallableWrapperTask(ExecutionLogContext.wrap(tocall));
             callableWrapperTask1.setProject(project);
             parallelTask.addTask(callableWrapperTask1);
         }

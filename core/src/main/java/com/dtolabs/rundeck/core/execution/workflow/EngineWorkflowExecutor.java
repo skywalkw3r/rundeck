@@ -22,6 +22,7 @@ import com.dtolabs.rundeck.core.common.IFramework;
 import com.dtolabs.rundeck.core.common.NodesSelector;
 import com.dtolabs.rundeck.core.dispatcher.*;
 import com.dtolabs.rundeck.core.execution.ExecutionListener;
+import com.dtolabs.rundeck.core.execution.ExecutionLogContext;
 import com.dtolabs.rundeck.core.execution.StepExecutionItem;
 import com.dtolabs.rundeck.core.execution.service.ExecutionServiceException;
 import com.dtolabs.rundeck.core.execution.workflow.engine.OperationCompleted;
@@ -318,7 +319,7 @@ public class EngineWorkflowExecutor extends BaseWorkflowExecutor {
                     .get("successOnEmptyNodeFilter"));
             if (!successOnEmptyNodeFilter) {
                 exception = e;
-                e.printStackTrace();
+                logger.warn("No matched nodes: {}", e.getMessage());
                 executionContext.getExecutionListener().log(Constants.ERR_LEVEL, "Exception: " + e.getClass() + ": " + e
                         .getMessage());
                 workflowResult = WorkflowResultFailed;
@@ -387,8 +388,13 @@ public class EngineWorkflowExecutor extends BaseWorkflowExecutor {
         return workflowSystemBuilder.get()
                                     .ruleEngine(ruleEngine)
                                     .executor(() -> wfThreadcount > 0
-                                                    ? Executors.newFixedThreadPool(wfThreadcount)
-                                                    : Executors.newCachedThreadPool()
+                                                    ? Executors.newFixedThreadPool(
+                                                            wfThreadcount,
+                                                            ExecutionLogContext.threadFactory()
+                                                    )
+                                                    : Executors.newCachedThreadPool(
+                                                            ExecutionLogContext.threadFactory()
+                                                    )
                                     )
                                     .state(state)
                                     .listeners(workflowSystemEventListeners)
